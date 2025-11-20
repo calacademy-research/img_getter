@@ -2,8 +2,8 @@
 *.jpg
 *.tif
 *.tiff
-*.txt
 __pycache__/*
 venv/*
 fetch_images.sh
 .idea/*
+fetch_log.txt
