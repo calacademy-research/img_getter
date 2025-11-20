@@ -1,0 +1,9 @@
+*.csv
+*.jpg
+*.tif
+*.tiff
+*.txt
+__pycache__/*
+venv/*
+fetch_images.sh
+.idea/*
