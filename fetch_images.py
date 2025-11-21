@@ -19,6 +19,8 @@ def download_image_list(rel_paths, output_folder="utm_trs_images"):
     downloaded_files = []
 
     for rel in rel_paths:
+        rel_prefix = f"{rel[0:2]}{os.sep}{rel[2:4]}"
+        rel = f"{rel_prefix}{os.sep}{rel}"
         print(f"Checking: {rel}")
         if not s3.storage_exists(rel):
             print(f"Not found on S3: {rel}")
@@ -39,7 +41,6 @@ def download_image_list(rel_paths, output_folder="utm_trs_images"):
             print(f"Error downloading {rel}: {e}")
 
     return downloaded_files
-
 
 
 def load_paths_from_csv(csv_path, column_name):
