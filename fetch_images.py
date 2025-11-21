@@ -234,7 +234,6 @@ def download_image_list(
                 s3.remove_tempfile(tmp_s3_path)
                 continue
 
-            # If no resize or compression requested, just copy:
             if max_size_kb is None and resize_to is None:
                 ok = copy_with_retry(
                     tmp_s3_path,
@@ -254,8 +253,15 @@ def download_image_list(
                     )
                 continue
 
-            # Load, optionally resize, then compress
-            with Image.open(tmp_s3_path) as image:
+            #  do not use "with Image.open(...)"
+            try:
+                image = Image.open(tmp_s3_path)
+            except Exception as e:
+                print(f"Error opening image {rel_key}: {e}")
+                s3.remove_tempfile(tmp_s3_path)
+                continue
+
+            try:
                 print(f"Processing (resize/compress) file {filename}")
 
                 if resize_to is not None:
@@ -274,7 +280,6 @@ def download_image_list(
                         max_size_kb=max_size_kb,
                     )
                 else:
-                    # Just resize, no size constraint — use save_image_with_retry
                     ok = save_image_with_retry(
                         image=image,
                         output_file_path=output_file_path,
@@ -291,6 +296,11 @@ def download_image_list(
                             f"Failed to save resized {filename} after retries; "
                             f"moving on to next image."
                         )
+            finally:
+                try:
+                    image.close()
+                except Exception:
+                    pass
 
             s3.remove_tempfile(tmp_s3_path)
             downloaded_files.append(output_file_path)
