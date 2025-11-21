@@ -20,7 +20,33 @@ import threading
 import atexit
 import weakref
 
-class S3Connection():
+def retry_s3_call():
+    """
+    Retry decorator for S3 operations with progressive backoff and infinite retries after 60s.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            delay = 0
+            attempt = 0
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except (ClientError, EndpointConnectionError, ConnectionClosedError, ReadTimeoutError) as e:
+                    attempt += 1
+                    logging.warning(
+                        f"[{func.__name__}] Attempt {attempt} failed: {type(e).__name__}: {e}. Retrying in {delay}s..."
+                    )
+                    time.sleep(delay)
+                    delay = min(delay + 10, 60)
+
+        return wrapper
+
+    return decorator
+
+
+class S3Connection:
     def __init__(self):
         mount_path = '/code/attachments'
         if os.getenv('S3_ENDPOINT') and not os.path.ismount(mount_path):
@@ -47,31 +73,6 @@ class S3Connection():
         atexit.register(self.cleanup_temp_folder)
         weakref.finalize(self, self.cleanup_temp_folder)
 
-    @staticmethod
-    def retry_s3_call():
-        """
-        Retry decorator for S3 operations with progressive backoff and infinite retries after 60s.
-        """
-
-        def decorator(func):
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                delay = 0
-                attempt = 0
-                while True:
-                    try:
-                        return func(*args, **kwargs)
-                    except (ClientError, EndpointConnectionError, ConnectionClosedError, ReadTimeoutError) as e:
-                        attempt += 1
-                        logging.warning(
-                            f"[{func.__name__}] Attempt {attempt} failed: {type(e).__name__}: {e}. Retrying in {delay}s..."
-                        )
-                        time.sleep(delay)
-                        delay = min(delay + 10, 60)
-
-            return wrapper
-
-        return decorator
 
     def cleanup_temp_folder(self):
         """Remove this instance's TMP_FOLDER and stale s3_temp folders safely."""

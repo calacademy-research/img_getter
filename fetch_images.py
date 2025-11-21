@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 import shutil
 
-def download_image_list(rel_paths, output_folder="utm_trs_images"):
+def download_image_list(rel_paths, output_folder="utm_trs_images", collection=None):
     """
     Downloads a list of S3 objects using S3Connection.storage_download()
     and saves them into a local output folder.
@@ -19,7 +19,7 @@ def download_image_list(rel_paths, output_folder="utm_trs_images"):
     downloaded_files = []
 
     for rel in rel_paths:
-        rel_prefix = f"{rel[0:2]}{os.sep}{rel[2:4]}"
+        rel_prefix = f"{collection}{os.sep}originals{os.sep}{rel[0:2]}{os.sep}{rel[2:4]}"
         rel = f"{rel_prefix}{os.sep}{rel}"
         print(f"Checking: {rel}")
         if not s3.storage_exists(rel):
@@ -70,6 +70,9 @@ if __name__ == "__main__":
     parser.add_argument("--csv", required=True,
                         help="Path to the CSV file containing S3 relative paths (e.g. 'attachmentlocation').")
 
+    parser.add_argument("--collection", required=True,
+                        help="collection directory name")
+
     parser.add_argument("--column", default="attachmentlocation",
                         help="Column name in the CSV containing S3 relative paths.")
 
@@ -86,4 +89,4 @@ if __name__ == "__main__":
         exit(1)
 
     print(f"Downloading {len(rel_paths)} images…")
-    download_image_list(rel_paths, args.output)
+    download_image_list(rel_paths=rel_paths, output_folder=args.output, collection=args.collection)
